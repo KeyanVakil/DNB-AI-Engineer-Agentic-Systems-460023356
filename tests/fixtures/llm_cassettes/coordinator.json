@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"plan\": [\"transactions\", \"portfolio\", \"market\", \"compliance\", \"writer\"], \"rationale\": \"All four specialists are needed for a full retail insight report.\"}",
+    "usage": {"prompt_tokens": 180, "completion_tokens": 60}
+  }
+]

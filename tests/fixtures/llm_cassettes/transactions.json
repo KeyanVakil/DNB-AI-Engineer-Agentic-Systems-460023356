@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"total_income_nok\": 35000.0, \"total_spend_nok\": 3486.5, \"top_categories\": [{\"category\": \"groceries\", \"nok\": 187.5}, {\"category\": \"utilities\", \"nok\": 899.0}, {\"category\": \"travel\", \"nok\": 2400.0}], \"recurring_items\": [\"Telenor\", \"DNB Payroll\"], \"notes\": \"Healthy positive net cashflow this month.\"}",
+    "usage": {"prompt_tokens": 220, "completion_tokens": 90}
+  }
+]

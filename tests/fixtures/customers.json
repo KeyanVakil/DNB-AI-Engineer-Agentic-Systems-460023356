@@ -1,0 +1,163 @@
+{
+  "customers": [
+    {
+      "id": "c-0001",
+      "profile": {
+        "id": "c-0001",
+        "name": "Ingrid Hansen",
+        "segment": "mass_affluent",
+        "joined_at": "2018-03-14T00:00:00Z"
+      },
+      "accounts": [
+        {
+          "id": "a-100",
+          "customer_id": "c-0001",
+          "kind": "checking",
+          "balance_nok": "42310.55",
+          "opened_at": "2018-03-14T00:00:00Z"
+        },
+        {
+          "id": "a-101",
+          "customer_id": "c-0001",
+          "kind": "savings",
+          "balance_nok": "150000.00",
+          "opened_at": "2019-02-01T00:00:00Z"
+        },
+        {
+          "id": "a-102",
+          "customer_id": "c-0001",
+          "kind": "credit",
+          "balance_nok": "-5320.10",
+          "opened_at": "2020-11-22T00:00:00Z"
+        }
+      ],
+      "transactions": [
+        {
+          "id": "t-1",
+          "account_id": "a-100",
+          "ts": "2026-04-15T10:11:00Z",
+          "amount_nok": "-187.50",
+          "merchant": "Rema 1000",
+          "category": "groceries",
+          "is_recurring": false
+        },
+        {
+          "id": "t-2",
+          "account_id": "a-100",
+          "ts": "2026-04-10T08:00:00Z",
+          "amount_nok": "-899.00",
+          "merchant": "Telenor",
+          "category": "utilities",
+          "is_recurring": true
+        },
+        {
+          "id": "t-3",
+          "account_id": "a-100",
+          "ts": "2026-04-01T12:30:00Z",
+          "amount_nok": "35000.00",
+          "merchant": "DNB Payroll",
+          "category": "income",
+          "is_recurring": true
+        },
+        {
+          "id": "t-4",
+          "account_id": "a-102",
+          "ts": "2026-03-28T19:00:00Z",
+          "amount_nok": "-2400.00",
+          "merchant": "SAS Airlines",
+          "category": "travel",
+          "is_recurring": false
+        }
+      ],
+      "holdings": [
+        {
+          "id": "h-1",
+          "customer_id": "c-0001",
+          "ticker": "EQNR.OL",
+          "quantity": "40",
+          "avg_cost_nok": "295.00"
+        },
+        {
+          "id": "h-2",
+          "customer_id": "c-0001",
+          "ticker": "DNB.OL",
+          "quantity": "25",
+          "avg_cost_nok": "210.50"
+        }
+      ]
+    },
+    {
+      "id": "c-0002",
+      "profile": {
+        "id": "c-0002",
+        "name": "Lars Olsen",
+        "segment": "retail",
+        "joined_at": "2022-07-09T00:00:00Z"
+      },
+      "accounts": [
+        {
+          "id": "a-200",
+          "customer_id": "c-0002",
+          "kind": "checking",
+          "balance_nok": "8120.00",
+          "opened_at": "2022-07-09T00:00:00Z"
+        }
+      ],
+      "transactions": [],
+      "holdings": []
+    }
+  ],
+  "market": {
+    "prices": {
+      "EQNR.OL": [
+        {"ticker": "EQNR.OL", "ts": "2026-04-14", "close": "312.40"},
+        {"ticker": "EQNR.OL", "ts": "2026-04-15", "close": "318.90"}
+      ],
+      "DNB.OL": [
+        {"ticker": "DNB.OL", "ts": "2026-04-14", "close": "224.00"},
+        {"ticker": "DNB.OL", "ts": "2026-04-15", "close": "226.10"}
+      ]
+    },
+    "indices": [
+      {"code": "OSEBX", "value": "1420.10", "change_pct": "0.8"}
+    ],
+    "news": {
+      "EQNR.OL": [
+        {
+          "id": "n-1",
+          "ts": "2026-04-15T06:00:00Z",
+          "ticker": "EQNR.OL",
+          "headline": "Equinor raises dividend",
+          "sentiment": "0.6"
+        }
+      ],
+      "DNB.OL": []
+    }
+  },
+  "rules": [
+    {
+      "id": "r-1",
+      "code": "NO_PII",
+      "description": "Reports must not contain raw PII such as fnr or phone numbers.",
+      "severity": "alert",
+      "regex_pattern": "fnr=",
+      "applies_to": "report"
+    },
+    {
+      "id": "r-2",
+      "code": "NO_SPECIFIC_STOCK_ADVICE",
+      "description": "Recommendations must not tell the customer to buy a specific stock.",
+      "severity": "warn",
+      "regex_pattern": "buy EQNR",
+      "applies_to": "recommendation"
+    },
+    {
+      "id": "r-3",
+      "code": "REC_COUNT",
+      "description": "Reports must include between 2 and 5 recommendations.",
+      "severity": "alert",
+      "regex_pattern": null,
+      "applies_to": "report"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"report_md\": \"# Financial Insight Report\\n\\n## Spending summary\\nNet positive NOK 31,513 this month.\\n\\n## Portfolio summary\\nEQNR.OL and DNB.OL both trading above cost basis.\\n\\n## Market context\\nOSEBX +0.8%; Equinor dividend raise.\\n\\n## Compliance notes\\nNo issues detected.\\n\\n## Recommendations\\n1. Move NOK 10,000 of idle checking balance into high-interest savings.\\n2. Review annual travel budget after recent SAS charge.\\n3. Consider geographic diversification of equities.\", \"report_json\": {\"customer_id\": \"c-0001\", \"spending_summary\": \"Net positive NOK 31,513 this month.\", \"portfolio_summary\": \"EQNR.OL and DNB.OL both above cost basis.\", \"market_context\": \"OSEBX +0.8%; Equinor dividend raise.\", \"compliance_notes\": \"No issues detected.\", \"recommendations\": [\"Move NOK 10,000 of idle checking balance into high-interest savings.\", \"Review annual travel budget after recent SAS charge.\", \"Consider geographic diversification of equities.\"]}}",
+    "usage": {"prompt_tokens": 320, "completion_tokens": 260}
+  }
+]

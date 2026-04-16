@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"factuality\": 4, \"helpfulness\": 5, \"tone\": 5, \"rationale\": \"Numbers tie back to the transactions; recommendations are actionable and non-pushy.\"}",
+    "usage": {"prompt_tokens": 250, "completion_tokens": 40}
+  }
+]

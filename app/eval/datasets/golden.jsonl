@@ -1,0 +1,5 @@
+{"customer_id": "c-0001", "expectations": {"must_mention": "savings"}}
+{"customer_id": "c-0001", "expectations": {"must_mention": "dividend"}}
+{"customer_id": "c-0001", "expectations": {"must_mention": "portfolio"}}
+{"customer_id": "c-0001", "expectations": {"must_mention": "spending"}}
+{"customer_id": "c-0001", "expectations": {"must_mention": "compliance"}}

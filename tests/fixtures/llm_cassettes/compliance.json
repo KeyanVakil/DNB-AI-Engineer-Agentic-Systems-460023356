@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"decision\": \"approve\", \"violations\": [], \"notes\": \"No PII or disallowed advice detected.\"}",
+    "usage": {"prompt_tokens": 170, "completion_tokens": 30}
+  }
+]

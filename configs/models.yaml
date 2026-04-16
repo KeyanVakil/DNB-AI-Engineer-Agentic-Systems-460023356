@@ -1,0 +1,24 @@
+variants:
+  - id: llama3.1-8b
+    provider: ollama
+    model: llama3.1:8b
+    cost_per_1k_in_usd: 0.0
+    cost_per_1k_out_usd: 0.0
+
+  - id: llama3.1-70b
+    provider: ollama
+    model: llama3.1:70b
+    cost_per_1k_in_usd: 0.0
+    cost_per_1k_out_usd: 0.0
+
+  - id: gpt-4o-mini
+    provider: openai
+    model: gpt-4o-mini
+    cost_per_1k_in_usd: 0.00015
+    cost_per_1k_out_usd: 0.0006
+
+  - id: claude-haiku
+    provider: anthropic
+    model: claude-haiku-20240307
+    cost_per_1k_in_usd: 0.00025
+    cost_per_1k_out_usd: 0.00125

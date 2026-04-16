@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"role\": \"assistant\", \"content\": \"stub\"}",
+    "usage": {"prompt_tokens": 50, "completion_tokens": 40}
+  }
+]

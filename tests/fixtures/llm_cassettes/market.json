@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"summary\": \"OSEBX up 0.8%; Equinor dividend raise supports energy sector sentiment.\", \"signals\": [{\"ticker\": \"EQNR.OL\", \"sentiment\": 0.6, \"rationale\": \"Dividend increase\"}], \"notes\": \"No adverse DNB.OL news in the window.\"}",
+    "usage": {"prompt_tokens": 190, "completion_tokens": 60}
+  }
+]

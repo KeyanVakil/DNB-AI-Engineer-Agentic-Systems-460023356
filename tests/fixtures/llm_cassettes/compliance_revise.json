@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"decision\": \"revise\", \"violations\": [{\"code\": \"NO_SPECIFIC_STOCK_ADVICE\", \"severity\": \"warn\", \"snippet\": \"buy EQNR\"}], \"notes\": \"Remove the explicit buy recommendation.\"}",
+    "usage": {"prompt_tokens": 170, "completion_tokens": 40}
+  }
+]

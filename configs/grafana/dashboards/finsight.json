@@ -1,0 +1,57 @@
+{
+  "title": "FinSight Agents",
+  "uid": "finsight-agents",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Agent Step Duration (p95)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(agent_step_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{agent}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "LLM Tokens/min",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(llm_tokens_total[1m])",
+          "legendFormat": "{{kind}} {{model}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "id": 3,
+      "title": "Eval Judge Score",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "eval_judge_score",
+          "legendFormat": "{{dimension}}"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 8}
+    },
+    {
+      "id": 4,
+      "title": "Drift PSI",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "finsight_drift_psi",
+          "legendFormat": "{{metric}}"
+        }
+      ],
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 8}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "refresh": "30s"
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "prompt_hash": "*",
+    "response": "{\"holdings\": [{\"ticker\": \"EQNR.OL\", \"qty\": 40, \"market_value_nok\": 12756.0, \"pnl_pct\": 0.081}, {\"ticker\": \"DNB.OL\", \"qty\": 25, \"market_value_nok\": 5652.5, \"pnl_pct\": 0.0742}], \"concentration_warning\": false, \"notes\": \"Balanced single-country exposure; consider diversification abroad.\"}",
+    "usage": {"prompt_tokens": 210, "completion_tokens": 75}
+  }
+]
