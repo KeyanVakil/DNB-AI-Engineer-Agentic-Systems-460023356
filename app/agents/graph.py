@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable
 from typing import Any
+
+_log = logging.getLogger(__name__)
 
 
 class _Node:
@@ -158,7 +161,13 @@ class _CompiledGraph:
 
                     return json.loads(record[0]) if isinstance(record[0], str) else record[0]
         except Exception:
-            pass
+            # Checkpoint table may not exist yet on first boot, or the DB
+            # may be transiently unavailable. A missing checkpoint is not
+            # fatal — we just restart from scratch — but surface the cause
+            # so operators see it.
+            _log.warning(
+                "load_checkpoint failed for thread_id=%s", self._thread_id, exc_info=True
+            )
         return {}
 
     async def _save_checkpoint(self, state: dict[str, Any], completed: set[str]) -> None:
@@ -197,7 +206,12 @@ class _CompiledGraph:
                     },
                 )
         except Exception:
-            pass
+            # Save failures mean resume won't work for this run, but they
+            # shouldn't crash the in-flight graph. Log so the operator can
+            # diagnose; common cause is a misconfigured DATABASE_URL.
+            _log.warning(
+                "save_checkpoint failed for thread_id=%s", self._thread_id, exc_info=True
+            )
 
 
 def build_graph(
