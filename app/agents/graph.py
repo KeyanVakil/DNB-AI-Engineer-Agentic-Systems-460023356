@@ -175,6 +175,7 @@ class _CompiledGraph:
             return
         try:
             import json
+            import time
             import uuid
 
             from sqlalchemy import text
@@ -201,7 +202,12 @@ class _CompiledGraph:
                     ),
                     {
                         "tid": self._thread_id,
-                        "cid": str(uuid.uuid4()),
+                        # Prefix with monotonic nanoseconds so lexicographic
+                        # ORDER BY checkpoint_id DESC == newest-first. A bare
+                        # uuid4 sorts randomly, which occasionally made
+                        # `_load_checkpoint` return an earlier snapshot and
+                        # re-run specialists on resume.
+                        "cid": f"{time.time_ns():020d}-{uuid.uuid4()}",
                         "data": json.dumps(snapshot),
                     },
                 )
