@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 from pathlib import Path
 
 import click
@@ -29,7 +28,9 @@ async def _run_eval(baseline: str, candidate: str, dataset: Path, output: Path) 
     from app.eval.code import run_code_evals
 
     records = [
-        json.loads(line) for line in dataset.read_text(encoding="utf-8").splitlines() if line.strip()
+        json.loads(line)
+        for line in dataset.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
 
     async def _score(version: str) -> dict:
@@ -80,6 +81,7 @@ def bench(config: str, dataset: str, output: str) -> None:
 
 async def _run_bench(config: Path, dataset: Path, output: Path) -> None:
     import yaml
+
     from app.api.bench import _run_bench_sync
 
     cfg = yaml.safe_load(config.read_text(encoding="utf-8"))

@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 
 import httpx
 import streamlit as st
 
 API_URL = os.environ.get("FINSIGHT_API_URL", "http://localhost:8000")
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_BENCH_CONFIG = _REPO_ROOT / "configs" / "models.yaml"
+_BENCH_DATASET = _REPO_ROOT / "app" / "eval" / "datasets" / "golden.jsonl"
 
 st.set_page_config(page_title="FinSight Agents", layout="wide")
 st.title("FinSight Agents")
@@ -90,7 +94,12 @@ elif page == "Reviews":
                 _api(
                     "POST",
                     f"/runs/{item['run_id']}/reviews",
-                    json={"reviewer": "demo-user", "score": score, "approved": approved, "notes": notes},
+                    json={
+                        "reviewer": "demo-user",
+                        "score": score,
+                        "approved": approved,
+                        "notes": notes,
+                    },
                 )
                 st.success("Review submitted")
 
@@ -102,8 +111,8 @@ elif page == "Bench":
             "POST",
             "/bench",
             json={
-                "config_path": "configs/models.yaml",
-                "dataset_path": "app/eval/datasets/golden.jsonl",
+                "config_path": str(_BENCH_CONFIG),
+                "dataset_path": str(_BENCH_DATASET),
                 "wait": True,
             },
         )
@@ -120,4 +129,7 @@ elif page == "Drift":
     else:
         for evt in items:
             badge = {"info": "🟢", "warn": "🟡", "alert": "🔴"}.get(evt["severity"], "⚪")
-            st.write(f"{badge} **{evt['metric']}** — PSI {evt.get('psi', 'N/A')} — {evt['created_at']}")
+            st.write(
+                f"{badge} **{evt['metric']}** — "
+                f"PSI {evt.get('psi', 'N/A')} — {evt['created_at']}"
+            )

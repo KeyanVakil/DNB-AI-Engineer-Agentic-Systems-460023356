@@ -21,8 +21,9 @@ async def readyz(registry: dict = Depends(get_registry)) -> Response:
 
     # Postgres check
     try:
-        from app.memory.database import get_db_session
         from sqlalchemy import text
+
+        from app.memory.database import get_db_session
 
         async with get_db_session() as session:
             await session.execute(text("SELECT 1"))

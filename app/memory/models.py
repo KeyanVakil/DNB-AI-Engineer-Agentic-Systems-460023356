@@ -149,7 +149,7 @@ class EvalResult(Base):
     passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.timezone.utc)
+        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.UTC)
     )
 
     run: Mapped[Run | None] = relationship("Run", back_populates="eval_results")
@@ -168,7 +168,7 @@ class HumanReview(Base):
     approved: Mapped[bool] = mapped_column(Boolean, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.timezone.utc)
+        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.UTC)
     )
 
     run: Mapped[Run] = relationship("Run", back_populates="human_reviews")
@@ -190,7 +190,7 @@ class DriftEvent(Base):
     psi: Mapped[Decimal | None] = mapped_column(Numeric(10, 6), nullable=True)
     severity: Mapped[str] = mapped_column(Severity, nullable=False)
     created_at: Mapped[dt.datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.timezone.utc)
+        DateTime(timezone=True), nullable=False, default=lambda: dt.datetime.now(dt.UTC)
     )
 
 

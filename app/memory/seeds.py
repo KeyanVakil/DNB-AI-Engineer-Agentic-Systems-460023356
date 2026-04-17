@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.memory.models import (
     Account,
     Customer,
-    DriftEvent,
     EvalResult,
     Holding,
     News,
@@ -69,7 +68,7 @@ async def load_customers(session: AsyncSession, customers: list[dict[str, Any]])
 
 
 async def load_market(session: AsyncSession, market: dict[str, Any]) -> None:
-    for ticker, rows in market.get("prices", {}).items():
+    for rows in market.get("prices", {}).values():
         for row in rows:
             session.add(
                 Price(
@@ -120,6 +119,6 @@ async def load_eval_results(
                 score=Decimal(str(r["score"])),
                 passed=r.get("passed", True),
                 payload=r.get("payload", {}),
-                created_at=r.get("created_at", dt.datetime.now(dt.timezone.utc)),
+                created_at=r.get("created_at", dt.datetime.now(dt.UTC)),
             )
         )

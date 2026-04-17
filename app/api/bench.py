@@ -18,6 +18,10 @@ router = APIRouter()
 
 _KNOWN_PROVIDERS = {"fake", "ollama", "openai", "anthropic", "bedrock"}
 
+# Strong references to in-flight bench tasks. Without this, asyncio only holds
+# a weak reference and the task can be garbage-collected before completion.
+_inflight_bench_tasks: set[asyncio.Task[Any]] = set()
+
 
 @router.post("/bench")
 async def post_bench(request: Request) -> JSONResponse:
@@ -56,7 +60,9 @@ async def post_bench(request: Request) -> JSONResponse:
         return JSONResponse({"experiment_id": exp_id, "run_ids": run_ids}, status_code=200)
 
     run_ids = [f"bench-{v['id']}-{int(time.time())}" for v in variants]
-    asyncio.create_task(_run_bench_sync(variants, records, seed))
+    task = asyncio.create_task(_run_bench_sync(variants, records, seed))
+    _inflight_bench_tasks.add(task)
+    task.add_done_callback(_inflight_bench_tasks.discard)
     return JSONResponse({"experiment_id": exp_id, "run_ids": run_ids}, status_code=202)
 
 
@@ -122,12 +128,6 @@ async def _run_bench_sync(
 
 def _make_stub_llm() -> Any:
     """Return a minimal stub LLM for use during benchmarking."""
-    try:
-        from tests.conftest import FakeLLM  # type: ignore[import]
-
-        return FakeLLM(cassette="judge", strict=False)
-    except ImportError:
-        pass
 
     class _Stub:
         async def complete(self, **kwargs: Any) -> dict[str, Any]:

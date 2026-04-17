@@ -28,7 +28,8 @@ async def run_judge(
                 "You are an impartial evaluator of financial insight reports. "
                 "Score the report on three dimensions: factuality, helpfulness, tone. "
                 "Each score is an integer from 1 (poor) to 5 (excellent). "
-                'Return JSON: {"factuality": int, "helpfulness": int, "tone": int, "rationale": "..."}.'
+                'Return JSON: '
+                '{"factuality": int, "helpfulness": int, "tone": int, "rationale": "..."}.'
             ),
         },
         {

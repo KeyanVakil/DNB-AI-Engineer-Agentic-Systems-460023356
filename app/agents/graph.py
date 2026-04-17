@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable
-
-from app.agents import state as state_module
+from collections.abc import Callable
+from typing import Any
 
 
 class _Node:
@@ -65,7 +64,14 @@ class _CompiledGraph:
                 return
             node = self.nodes[name]
             update = await node(state, llm=self._llm, mcp=self._mcp)
+            # Honor the GraphState `errors` reducer: accumulate, don't overwrite.
+            # Otherwise concurrent specialists race and only the last node's
+            # errors survive — losing visibility into MCP tool failures.
+            new_errors = update.pop("errors", None)
             state.update(update)
+            if new_errors:
+                existing = state.get("errors") or []
+                state["errors"] = list(existing) + list(new_errors)
             completed.add(name)
             await self._save_checkpoint(state, completed)
 
@@ -117,6 +123,7 @@ class _CompiledGraph:
             return {}
         try:
             from sqlalchemy import text
+
             from app.memory.database import get_db_session
 
             async with get_db_session() as session:
@@ -142,7 +149,9 @@ class _CompiledGraph:
         try:
             import json
             import uuid
+
             from sqlalchemy import text
+
             from app.memory.database import get_db_session
 
             # Store a JSON-safe snapshot (exclude non-serialisable items)
@@ -180,11 +189,11 @@ def build_graph(
 ) -> _CompiledGraph:
     """Build and return the FinSight compiled graph."""
     from app.agents import (
-        coordinator,
-        transactions,
-        portfolio,
-        market,
         compliance,
+        coordinator,
+        market,
+        portfolio,
+        transactions,
         writer,
     )
 

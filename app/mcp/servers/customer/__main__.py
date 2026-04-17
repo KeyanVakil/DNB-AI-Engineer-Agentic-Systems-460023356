@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import datetime as dt
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
 
 from app.memory.database import get_db_session
 from app.memory.models import Account, Customer, Holding, Transaction
-from sqlalchemy import select
 
 app = FastAPI(title="customer-mcp")
 
@@ -48,7 +50,8 @@ async def get_accounts(body: dict) -> JSONResponse:
 @app.post("/tools/get_transactions")
 async def get_transactions(body: dict) -> JSONResponse:
     customer_id = body["customer_id"]
-    days = body.get("days", 90)
+    days = int(body.get("days", 90))
+    since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
     async with get_db_session() as session:
         accounts = (
             await session.execute(select(Account).where(Account.customer_id == customer_id))
@@ -56,7 +59,10 @@ async def get_transactions(body: dict) -> JSONResponse:
         acc_ids = [a.id for a in accounts]
         rows = (
             await session.execute(
-                select(Transaction).where(Transaction.account_id.in_(acc_ids)).limit(200)
+                select(Transaction)
+                .where(Transaction.account_id.in_(acc_ids))
+                .where(Transaction.ts >= since)
+                .limit(200)
             )
         ).scalars().all()
     return JSONResponse([

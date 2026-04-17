@@ -5,14 +5,13 @@ from __future__ import annotations
 import datetime as dt
 import json
 import uuid
-from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, field_validator
 
-from app.api.errors import bad_request, not_found, internal_error, unprocessable
+from app.api.errors import bad_request, internal_error, not_found, unprocessable
 from app.llm.provider import get_llm
 from app.mcp.client import get_registry
 
@@ -65,12 +64,13 @@ async def _run_background(
     llm: Any,
     mcp: dict[str, Any],
 ) -> None:
+    from sqlalchemy import select
+
     from app.agents.graph import build_graph
     from app.eval.runner import run_evals
     from app.memory.database import get_db_session
     from app.memory.models import Run
     from app.observability.otel import associate_run_with_trace, get_tracer
-    from sqlalchemy import select
 
     run_id_str = str(run_id)
     tracer = get_tracer()
@@ -83,10 +83,11 @@ async def _run_background(
 
         try:
             async with get_db_session() as session:
-                run = (await session.execute(select(Run).where(Run.id == run_id))).scalar_one_or_none()
+                row = await session.execute(select(Run).where(Run.id == run_id))
+                run = row.scalar_one_or_none()
                 if run:
                     run.status = "running"
-                    run.started_at = dt.datetime.now(dt.timezone.utc)
+                    run.started_at = dt.datetime.now(dt.UTC)
 
             graph = build_graph(llm=llm, mcp=mcp, thread_id=run_id_str)
 
@@ -98,11 +99,12 @@ async def _run_background(
 
             if final.get("status") == "failed":
                 async with get_db_session() as session:
-                    run = (await session.execute(select(Run).where(Run.id == run_id))).scalar_one_or_none()
+                    row = await session.execute(select(Run).where(Run.id == run_id))
+                    run = row.scalar_one_or_none()
                     if run:
                         run.status = "failed"
                         run.error = final.get("error", "")
-                        run.finished_at = dt.datetime.now(dt.timezone.utc)
+                        run.finished_at = dt.datetime.now(dt.UTC)
                 _run_cache[run_id_str] = {"status": "failed", "error": final.get("error")}
                 return
 
@@ -110,10 +112,11 @@ async def _run_background(
             report_md = final.get("report_md", "")
 
             async with get_db_session() as session:
-                run = (await session.execute(select(Run).where(Run.id == run_id))).scalar_one_or_none()
+                row = await session.execute(select(Run).where(Run.id == run_id))
+                run = row.scalar_one_or_none()
                 if run:
                     run.status = "succeeded"
-                    run.finished_at = dt.datetime.now(dt.timezone.utc)
+                    run.finished_at = dt.datetime.now(dt.UTC)
                     run.report_md = report_md
                     run.report_json = report_json
 
@@ -138,11 +141,12 @@ async def _run_background(
             _run_cache[run_id_str] = {"status": "failed", "error": err_msg}
             try:
                 async with get_db_session() as session:
-                    run = (await session.execute(select(Run).where(Run.id == run_id))).scalar_one_or_none()
+                    row = await session.execute(select(Run).where(Run.id == run_id))
+                    run = row.scalar_one_or_none()
                     if run:
                         run.status = "failed"
                         run.error = err_msg
-                        run.finished_at = dt.datetime.now(dt.timezone.utc)
+                        run.finished_at = dt.datetime.now(dt.UTC)
             except Exception:
                 pass
 
@@ -171,9 +175,10 @@ async def create_run(
 
     # Verify customer exists
     try:
+        from sqlalchemy import select
+
         from app.memory.database import get_db_session
         from app.memory.models import Customer
-        from sqlalchemy import select
 
         async with get_db_session() as session:
             customer = (
@@ -259,18 +264,20 @@ async def get_run(run_id: str) -> JSONResponse:
     except ValueError:
         return not_found(f"Run not found: {run_id}")
 
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import EvalResult, Run
-    from sqlalchemy import select
 
     try:
         async with get_db_session() as session:
-            run = (await session.execute(select(Run).where(Run.id == uid))).scalar_one_or_none()
-            eval_rows = (
-                (await session.execute(select(EvalResult).where(EvalResult.run_id == uid))).scalars().all()
-                if run
-                else []
-            )
+            run_row = await session.execute(select(Run).where(Run.id == uid))
+            run = run_row.scalar_one_or_none()
+            if run:
+                eval_stmt = select(EvalResult).where(EvalResult.run_id == uid)
+                eval_rows = (await session.execute(eval_stmt)).scalars().all()
+            else:
+                eval_rows = []
     except Exception:
         run = None
         eval_rows = []
@@ -296,7 +303,9 @@ async def get_run(run_id: str) -> JSONResponse:
         "status": status,
         "customer_id": run.customer_id if run else cached.get("customer_id", ""),
         "prompt_version": run.prompt_version if run else "v1",
-        "model_config_id": (run.model_config or {}).get("id", "llama3.1-8b") if run else "llama3.1-8b",
+        "model_config_id": (
+            (run.model_config or {}).get("id", "llama3.1-8b") if run else "llama3.1-8b"
+        ),
         "error": error,
         "evals": evals_summary,
     }
@@ -314,9 +323,10 @@ async def list_runs(
     limit: int = 20,
     cursor: str | None = None,
 ) -> JSONResponse:
+    from sqlalchemy import func, select
+
     from app.memory.database import get_db_session
     from app.memory.models import Run
-    from sqlalchemy import func, select
 
     try:
         async with get_db_session() as session:
@@ -373,9 +383,10 @@ async def resume_run(
     llm: Any = Depends(get_llm),
     registry: dict = Depends(get_registry),
 ) -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import Run
-    from sqlalchemy import select
 
     try:
         uid = uuid.UUID(run_id)

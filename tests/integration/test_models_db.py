@@ -15,8 +15,8 @@ import uuid
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 pytestmark = pytest.mark.integration
 
@@ -66,10 +66,10 @@ async def test_account_kind_enum_rejects_invalid_value(db_session):
             customer_id="c-0001",
             kind="martian",  # not in enum
             balance_nok=Decimal("1.00"),
-            opened_at=dt.datetime.now(dt.timezone.utc),
+            opened_at=dt.datetime.now(dt.UTC),
         )
     )
-    with pytest.raises(Exception):
+    with pytest.raises(DBAPIError):
         await db_session.flush()
 
 
@@ -79,7 +79,7 @@ async def test_transactions_is_recurring_defaults_to_false(db_session):
     t = Transaction(
         id="t-new",
         account_id="a-100",
-        ts=dt.datetime.now(dt.timezone.utc),
+        ts=dt.datetime.now(dt.UTC),
         amount_nok=Decimal("-10.00"),
         merchant="Test",
         category="misc",
@@ -166,7 +166,7 @@ async def test_rule_applies_to_enum(db_session):
             applies_to="martian",
         )
     )
-    with pytest.raises(Exception):
+    with pytest.raises(DBAPIError):
         await db_session.flush()
 
 
@@ -190,11 +190,11 @@ async def test_run_status_transitions(db_session, customer_id):
     await db_session.flush()
 
     run.status = "running"
-    run.started_at = dt.datetime.now(dt.timezone.utc)
+    run.started_at = dt.datetime.now(dt.UTC)
     await db_session.flush()
 
     run.status = "succeeded"
-    run.finished_at = dt.datetime.now(dt.timezone.utc)
+    run.finished_at = dt.datetime.now(dt.UTC)
     run.total_tokens = 800
     run.total_cost_usd = Decimal("0.0123")
     run.report_md = "# ok"
@@ -220,7 +220,7 @@ async def test_run_status_enum_rejects_unknown_value(db_session, customer_id):
             model_config={},
         )
     )
-    with pytest.raises(Exception):
+    with pytest.raises(DBAPIError):
         await db_session.flush()
 
 
@@ -270,14 +270,14 @@ async def test_human_review_score_range_enforced_by_db_or_model(db_session, cust
             notes=None,
         )
     )
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError):
         await db_session.flush()
 
 
 async def test_drift_event_requires_window_range(db_session):
     from app.memory.models import DriftEvent
 
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     event = DriftEvent(
         id=uuid.uuid4(),
         metric="judge_score",
@@ -299,7 +299,7 @@ async def test_drift_event_requires_window_range(db_session):
 
 
 async def test_memory_embeddings_roundtrip_with_pgvector(db_session, customer_id):
-    from app.memory.embeddings import store_embedding, nearest_neighbors
+    from app.memory.embeddings import nearest_neighbors, store_embedding
     from app.memory.models import Run
 
     run = Run(
@@ -329,7 +329,7 @@ async def test_memory_embeddings_rejects_wrong_dimension(db_session, customer_id
     db_session.add(run)
     await db_session.flush()
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         await store_embedding(
             run_id=run.id, role="assistant", text="wrong dim", embedding=[0.1] * 10
         )

@@ -3,24 +3,25 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime as dt
 import uuid
-from decimal import Decimal
-from typing import Any
 
-from app.drift.stats import ks_test, psi as psi_fn
+from app.drift.stats import ks_test
+from app.drift.stats import psi as psi_fn
 
 
 async def run_once() -> None:
     """Run one drift detection cycle. Called every 5 minutes by the compose service."""
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     baseline_start = now - dt.timedelta(hours=25)
     baseline_end = now - dt.timedelta(hours=1)
     current_start = now - dt.timedelta(hours=1)
     current_end = now
 
-    from app.memory.database import get_db_session
     from sqlalchemy import text
+
+    from app.memory.database import get_db_session
 
     async with get_db_session() as session:
         # Fetch baseline judge scores (24h window)
@@ -57,7 +58,8 @@ async def run_once() -> None:
         await session.execute(
             text(
                 "INSERT INTO drift_events "
-                "(id, metric, baseline_window, current_window, statistic, p_value, psi, severity, created_at) "
+                "(id, metric, baseline_window, current_window, statistic, p_value, psi, "
+                "severity, created_at) "
                 "VALUES (:id, :metric, tstzrange(:bstart, :bend), tstzrange(:cstart, :cend), "
                 ":stat, :pval, :psi, :sev, :now)"
             ),
@@ -110,7 +112,7 @@ def _severity(p_value: float, psi_val: float) -> str:
 
 def _update_prometheus(psi_val: float, p_value: float) -> None:
     try:
-        from app.observability.metrics import finsight_drift_psi, finsight_drift_ks_p
+        from app.observability.metrics import finsight_drift_ks_p, finsight_drift_psi
 
         finsight_drift_psi.labels(metric="judge_score").set(psi_val)
         finsight_drift_ks_p.labels(metric="judge_score").set(p_value)
@@ -120,8 +122,6 @@ def _update_prometheus(psi_val: float, p_value: float) -> None:
 
 async def run_loop(interval_seconds: int = 300) -> None:
     while True:
-        try:
+        with contextlib.suppress(Exception):
             await run_once()
-        except Exception:
-            pass
         await asyncio.sleep(interval_seconds)

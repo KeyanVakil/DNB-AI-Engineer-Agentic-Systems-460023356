@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-import json
+import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -15,6 +17,51 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.errors import PROBLEM_CONTENT_TYPE, problem
 from app.observability.otel import get_tracer, setup_otel
+
+_log = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Run migrations and seed demo data on first boot — idempotent."""
+    from app.memory.database import get_db_session, get_engine, run_migrations
+    from app.settings import get_settings
+
+    if get_settings().is_test:
+        yield
+        return
+
+    try:
+        engine = await get_engine()
+        await run_migrations(engine)
+        await _seed_if_empty(get_db_session)
+    except Exception as exc:
+        _log.warning("startup migration/seed skipped: %s", exc)
+    yield
+
+
+async def _seed_if_empty(db_session_factory: Any) -> None:
+    import json
+    from pathlib import Path
+
+    from sqlalchemy import select
+
+    from app.memory import seeds
+    from app.memory.models import Customer
+
+    fixture = Path(__file__).parent.parent / "tests" / "fixtures" / "customers.json"
+    if not fixture.exists():
+        return
+
+    async with db_session_factory() as session:
+        existing = (await session.execute(select(Customer).limit(1))).scalar_one_or_none()
+        if existing is not None:
+            return
+        payload = json.loads(fixture.read_text(encoding="utf-8"))
+        await seeds.load_customers(session, payload["customers"])
+        await seeds.load_market(session, payload["market"])
+        if "rules" in payload:
+            await seeds.load_compliance(session, payload["rules"])
 
 
 class _TraceparentMiddleware(BaseHTTPMiddleware):
@@ -56,7 +103,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
 
-    app = FastAPI(title="FinSight Agents", version="0.1.0")
+    app = FastAPI(title="FinSight Agents", version="0.1.0", lifespan=_lifespan)
     app.add_middleware(_TraceparentMiddleware)
 
     # Mount routers
@@ -97,7 +144,11 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(405)
     async def method_not_allowed(request: Request, exc: Any) -> JSONResponse:
-        return problem(405, "Method Not Allowed", f"{request.method} not allowed on {request.url.path}")
+        return problem(
+            405,
+            "Method Not Allowed",
+            f"{request.method} not allowed on {request.url.path}",
+        )
 
     @app.exception_handler(Exception)
     async def generic_exc_handler(request: Request, exc: Exception) -> JSONResponse:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.agents.base import _TimedSpan, list_mcp_tools, call_mcp, parse_json_response, run_llm
+from app.agents.base import _TimedSpan, call_mcp, list_mcp_tools, parse_json_response, run_llm
 from app.mcp.errors import ToolError
 
 
@@ -25,7 +25,10 @@ async def run(
         try:
             if "get_transactions" in tool_names:
                 transactions = await call_mcp(
-                    mcp, "customer-mcp", "get_transactions", {"customer_id": customer_id, "days": 90}
+                    mcp,
+                    "customer-mcp",
+                    "get_transactions",
+                    {"customer_id": customer_id, "days": 90},
                 )
         except ToolError as e:
             errors.append(e)

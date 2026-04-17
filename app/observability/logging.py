@@ -33,7 +33,11 @@ class _JsonFormatter(logging.Formatter):
         if record.exc_info:
             payload["exc_info"] = self.formatException(record.exc_info)
         skip = set(logging.LogRecord.__dict__) | set(payload) | {"trace_id", "span_id", "args"}
-        extra = {k: v for k, v in record.__dict__.items() if k not in skip and not k.startswith("_")}
+        extra = {
+            k: v
+            for k, v in record.__dict__.items()
+            if k not in skip and not k.startswith("_")
+        }
         payload.update(extra)
         return json.dumps(payload)
 

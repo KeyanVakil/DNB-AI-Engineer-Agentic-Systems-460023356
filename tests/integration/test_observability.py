@@ -19,7 +19,10 @@ pytestmark = pytest.mark.integration
 async def test_http_request_emits_root_span(client, customer_id, otel_spans):
     await client.post("/runs", json={"customer_id": customer_id})
 
-    request_spans = [s for s in otel_spans if s["kind"] == "server" and s["name"].startswith("POST")]
+    request_spans = [
+        s for s in otel_spans
+        if s["kind"] == "server" and s["name"].startswith("POST")
+    ]
     assert request_spans, f"no root HTTP span found: {[s['name'] for s in otel_spans]}"
     assert "http.route" in request_spans[0]["attributes"]
 

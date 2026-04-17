@@ -28,7 +28,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.eval]
 async def test_code_eval_passes_for_valid_report(completed_run, db_session):
     from app.eval.code import run_code_evals
 
-    result = await run_code_evals(completed_run["report"]["json"], completed_run["report"]["markdown"])
+    result = await run_code_evals(
+        completed_run["report"]["json"], completed_run["report"]["markdown"]
+    )
 
     assert result.passed is True
     assert result.score == 1.0
@@ -170,7 +172,12 @@ async def test_all_three_eval_kinds_logged_to_mlflow(completed_run):
         filter_string=f"tags.finsight_run_id = '{completed_run['run_id']}'",
     )
     assert runs
-    tags = {t.key: t.value for t in runs[0].data.tags.values()} if hasattr(runs[0].data.tags, "values") else dict(runs[0].data.tags)
+    raw_tags = runs[0].data.tags
+    tags = (
+        dict(raw_tags)
+        if isinstance(raw_tags, dict)
+        else {t.key: t.value for t in raw_tags}
+    )
     assert tags.get("eval_kinds")
     kinds = set(tags["eval_kinds"].split(","))
     assert {"code", "judge"}.issubset(kinds)

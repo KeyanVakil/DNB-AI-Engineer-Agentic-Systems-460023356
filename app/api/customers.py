@@ -10,9 +10,10 @@ router = APIRouter()
 
 @router.get("/customers")
 async def get_customers() -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import Customer
-    from sqlalchemy import select
 
     async with get_db_session() as session:
         customers = (await session.execute(select(Customer))).scalars().all()

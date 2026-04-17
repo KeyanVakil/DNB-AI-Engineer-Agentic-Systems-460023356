@@ -10,9 +10,10 @@ router = APIRouter()
 
 @router.get("/drift")
 async def get_drift(metric: str | None = None) -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import DriftEvent
-    from sqlalchemy import select
 
     async with get_db_session() as session:
         q = select(DriftEvent).order_by(DriftEvent.created_at.desc()).limit(100)

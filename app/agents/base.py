@@ -87,7 +87,7 @@ class _TimedSpan:
         self._span_ctx: Any = None
         self._t0: float = 0.0
 
-    def __enter__(self) -> "_TimedSpan":
+    def __enter__(self) -> _TimedSpan:
         from app.observability.otel import get_tracer
 
         self._span_ctx = get_tracer().start_as_current_span(f"agent.{self._name}")

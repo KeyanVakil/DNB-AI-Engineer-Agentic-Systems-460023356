@@ -24,7 +24,7 @@ async def baseline_eval_scores(db_session):
     """Seed 24h of stable judge scores for a baseline distribution."""
     from app.memory import seeds
 
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     records = [
         {
             "run_id": None,
@@ -46,7 +46,7 @@ async def shifted_eval_scores(db_session):
     """Seed last-hour scores with a clear downward shift (should trigger alert)."""
     from app.memory import seeds
 
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     records = [
         {
             "run_id": None,

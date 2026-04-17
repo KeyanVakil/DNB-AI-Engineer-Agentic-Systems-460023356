@@ -297,9 +297,9 @@ def otel_spans() -> Iterator[list[dict[str, Any]]]:
 
 @pytest.fixture()
 async def app(db_engine, fake_mcp_registry, fake_llm):
+    from app.llm import provider as llm_provider
     from app.main import create_app
     from app.mcp import client as mcp_client
-    from app.llm import provider as llm_provider
 
     application = create_app()
     application.dependency_overrides[mcp_client.get_registry] = lambda: fake_mcp_registry

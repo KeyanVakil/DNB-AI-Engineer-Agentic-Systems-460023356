@@ -62,7 +62,7 @@ def psi(baseline_bins: list[float], current_bins: list[float]) -> float:
 
     _EPS = 1e-10
     result = 0.0
-    for b, c in zip(baseline_bins, current_bins):
+    for b, c in zip(baseline_bins, current_bins, strict=True):
         b = max(b, _EPS)
         c = max(c, _EPS)
         result += (c - b) * math.log(c / b)

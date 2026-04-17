@@ -152,7 +152,7 @@ async def test_bench_is_reproducible_with_fixed_seed(
     second = (await _run()).json()
 
     mlflow_client = mlflow.tracking.MlflowClient()
-    for a, b in zip(first["run_ids"], second["run_ids"]):
+    for a, b in zip(first["run_ids"], second["run_ids"], strict=True):
         m_a = mlflow_client.get_run(a).data.metrics
         m_b = mlflow_client.get_run(b).data.metrics
         for key in ("total_cost_usd", "code_eval_pass_rate"):
@@ -165,7 +165,11 @@ async def test_bench_rejects_unknown_variant_provider(client, tmp_path: Path, be
     bad = tmp_path / "bad.yaml"
     bad.write_text(
         yaml.safe_dump(
-            {"variants": [{"id": "x", "provider": "martian", "model": "x", "cost_per_1k_in_usd": 0}]}
+            {
+                "variants": [
+                    {"id": "x", "provider": "martian", "model": "x", "cost_per_1k_in_usd": 0}
+                ]
+            }
         ),
         encoding="utf-8",
     )

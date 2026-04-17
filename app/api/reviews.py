@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
-from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -52,9 +51,10 @@ async def post_review(run_id: str, request: Request) -> JSONResponse:
         errors = [{"field": str(e["loc"]), "msg": e["msg"]} for e in exc.errors()]
         return unprocessable("Validation error", errors)
 
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import EvalResult, HumanReview, Run
-    from sqlalchemy import select
 
     async with get_db_session() as session:
         run = (await session.execute(select(Run).where(Run.id == uid))).scalar_one_or_none()
@@ -97,9 +97,10 @@ async def post_review(run_id: str, request: Request) -> JSONResponse:
 
 @router.get("/reviews/queue")
 async def get_review_queue() -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import HumanReview, Run
-    from sqlalchemy import select
 
     async with get_db_session() as session:
         reviewed_ids = {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.agents.base import _TimedSpan, list_mcp_tools, call_mcp, parse_json_response, run_llm
+from app.agents.base import _TimedSpan, call_mcp, list_mcp_tools, parse_json_response, run_llm
 from app.mcp.errors import ToolError
 
 
@@ -34,7 +34,9 @@ async def run(
         for ticker in tickers[:3]:
             try:
                 if "get_news" in tool_names:
-                    n = await call_mcp(mcp, "market-mcp", "get_news", {"ticker": ticker, "limit": 3})
+                    n = await call_mcp(
+                        mcp, "market-mcp", "get_news", {"ticker": ticker, "limit": 3}
+                    )
                     news.extend(n if isinstance(n, list) else [])
             except ToolError:
                 pass

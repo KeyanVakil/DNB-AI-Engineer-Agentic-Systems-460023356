@@ -6,11 +6,11 @@ import threading
 from typing import Any
 
 from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider, ReadableSpan
+from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
 _provider: TracerProvider | None = None
-_memory_processors: dict[int, "_BufferExporter"] = {}
+_memory_processors: dict[int, _BufferExporter] = {}
 _lock = threading.Lock()
 
 # Span storage keyed by trace_id for API retrieval

@@ -50,7 +50,6 @@ async def test_full_graph_run_produces_schema_valid_report(
 ):
     from app.agents.graph import build_graph
     from app.agents.state import FinSightReport
-    from tests.conftest import FakeLLM
 
     llm = _multi_cassette_llm(
         {
@@ -88,12 +87,14 @@ async def test_specialists_run_concurrently(
         return await original(tool_name, arguments)
 
     # Instrument the MCP registry to sleep for each specialist's first tool call
-    for name, server in fake_mcp_registry.items():
+    for server in fake_mcp_registry.values():
         original = server.call_tool
 
         async def wrapped(tool_name, arguments, _o=original):
             await asyncio.sleep(0.3)
-            return await _o(tool_name, arguments) if asyncio.iscoroutinefunction(_o) else _o(tool_name, arguments)
+            if asyncio.iscoroutinefunction(_o):
+                return await _o(tool_name, arguments)
+            return _o(tool_name, arguments)
 
         server.call_tool = wrapped  # type: ignore[method-assign]
 
@@ -115,8 +116,9 @@ async def test_specialists_run_concurrently(
 async def test_graph_state_is_checkpointed_to_postgres(
     db_engine, fake_mcp_registry, customer_id, db_session
 ):
-    from app.agents.graph import build_graph
     from sqlalchemy import text
+
+    from app.agents.graph import build_graph
 
     llm = _multi_cassette_llm(
         {name: name for name in

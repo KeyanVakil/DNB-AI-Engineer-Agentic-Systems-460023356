@@ -24,9 +24,10 @@ async def list_tools() -> JSONResponse:
 
 @app.post("/tools/list_rules")
 async def list_rules(body: dict) -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import Rule
-    from sqlalchemy import select
 
     async with get_db_session() as session:
         q = select(Rule)
@@ -50,9 +51,10 @@ async def check_pii(body: dict) -> JSONResponse:
 
 @app.post("/tools/evaluate")
 async def evaluate(body: dict) -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import Rule
-    from sqlalchemy import select
 
     text = body.get("text", "")
     async with get_db_session() as session:

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
-from app.agents.base import _TimedSpan, list_mcp_tools, call_mcp, parse_json_response, run_llm
+from app.agents.base import _TimedSpan, call_mcp, list_mcp_tools, parse_json_response, run_llm
 from app.mcp.errors import ToolError
 
 
@@ -47,10 +48,8 @@ async def run(
 
         resp = await run_llm(llm, model=None, messages=messages, agent="compliance")
         result: dict[str, Any] = {"decision": "approve", "violations": [], "notes": ""}
-        try:
+        with contextlib.suppress(Exception):
             result = parse_json_response(resp["content"])
-        except Exception:
-            pass
 
         # Merge MCP tool errors into compliance notes
         if errors:

@@ -22,18 +22,25 @@ async def list_tools() -> JSONResponse:
 
 @app.post("/tools/get_prices")
 async def get_prices(body: dict) -> JSONResponse:
-    from app.memory.database import get_db_session
-    from app.memory.models import Price
     from sqlalchemy import select
 
+    from app.memory.database import get_db_session
+    from app.memory.models import Price
+
     ticker = body["ticker"]
+    limit = int(body.get("days", 30))
     async with get_db_session() as session:
         rows = (
             await session.execute(
-                select(Price).where(Price.ticker == ticker).order_by(Price.ts.desc()).limit(body.get("days", 30))
+                select(Price)
+                .where(Price.ticker == ticker)
+                .order_by(Price.ts.desc())
+                .limit(limit)
             )
         ).scalars().all()
-    return JSONResponse([{"ticker": p.ticker, "ts": str(p.ts), "close": str(p.close)} for p in rows])
+    return JSONResponse(
+        [{"ticker": p.ticker, "ts": str(p.ts), "close": str(p.close)} for p in rows]
+    )
 
 
 @app.post("/tools/get_indices")
@@ -43,9 +50,10 @@ async def get_indices(body: dict) -> JSONResponse:
 
 @app.post("/tools/get_news")
 async def get_news(body: dict) -> JSONResponse:
+    from sqlalchemy import select
+
     from app.memory.database import get_db_session
     from app.memory.models import News
-    from sqlalchemy import select
 
     ticker = body["ticker"]
     limit = body.get("limit", 5)

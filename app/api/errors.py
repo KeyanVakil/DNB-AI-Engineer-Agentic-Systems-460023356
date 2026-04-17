@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Request
 from fastapi.responses import JSONResponse
 
 PROBLEM_CONTENT_TYPE = "application/problem+json"

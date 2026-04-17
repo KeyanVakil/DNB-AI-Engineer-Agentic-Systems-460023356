@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time
 from typing import Any
 
 from app.observability.otel import get_tracer
@@ -37,6 +36,8 @@ def _build_llm(settings: Any) -> Any:
         return LiteLLMProvider(model=f"openai/{settings.llm_model}")
     if provider == "anthropic":
         return LiteLLMProvider(model=f"anthropic/{settings.llm_model}")
+    if provider == "bedrock":
+        return LiteLLMProvider(model=f"bedrock/{settings.llm_model}")
     raise ValueError(f"Unknown LLM provider: {provider!r}")
 
 
@@ -76,11 +77,14 @@ class OllamaLLM:
             span.set_attribute("llm.model", effective_model)
             span.set_attribute("llm.prompt_hash", prompt_hash)
 
-            payload: dict[str, Any] = {"model": effective_model, "messages": messages, "stream": False}
+            payload: dict[str, Any] = {
+                "model": effective_model,
+                "messages": messages,
+                "stream": False,
+            }
             if response_format:
                 payload["format"] = "json"
 
-            t0 = time.perf_counter()
             async with httpx.AsyncClient(timeout=120.0) as client:
                 resp = await client.post(f"{self._base_url}/api/chat", json=payload)
                 resp.raise_for_status()
@@ -96,7 +100,12 @@ class OllamaLLM:
             span.set_attribute("llm.tokens.out", usage["completion_tokens"])
             _record_llm_metrics(effective_model, usage)
 
-            return {"content": content, "usage": usage, "model": effective_model, "prompt_hash": prompt_hash}
+            return {
+                "content": content,
+                "usage": usage,
+                "model": effective_model,
+                "prompt_hash": prompt_hash,
+            }
 
 
 class LiteLLMProvider:
@@ -112,7 +121,13 @@ class LiteLLMProvider:
         agent: str | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        import litellm  # type: ignore[import]
+        try:
+            import litellm  # type: ignore[import-not-found]
+        except ImportError as exc:  # pragma: no cover
+            raise RuntimeError(
+                "litellm is required for openai/anthropic/bedrock providers. "
+                "Install with: pip install litellm"
+            ) from exc
 
         effective_model = model or self._model
         prompt_hash = _hash_messages(messages)
@@ -137,7 +152,12 @@ class LiteLLMProvider:
             span.set_attribute("llm.tokens.out", usage["completion_tokens"])
             _record_llm_metrics(effective_model, usage)
 
-            return {"content": content, "usage": usage, "model": effective_model, "prompt_hash": prompt_hash}
+            return {
+                "content": content,
+                "usage": usage,
+                "model": effective_model,
+                "prompt_hash": prompt_hash,
+            }
 
 
 def _hash_messages(messages: list[dict[str, Any]]) -> str:
@@ -148,12 +168,14 @@ def _hash_messages(messages: list[dict[str, Any]]) -> str:
 
 def _record_llm_metrics(model: str, usage: dict[str, Any]) -> None:
     try:
-        from app.observability.metrics import llm_tokens_total, llm_cost_usd_total
         from app.llm.cost import estimate_cost
+        from app.observability.metrics import llm_cost_usd_total, llm_tokens_total
 
-        llm_tokens_total.labels(kind="in", model=model).inc(usage.get("prompt_tokens", 0))
-        llm_tokens_total.labels(kind="out", model=model).inc(usage.get("completion_tokens", 0))
-        cost = estimate_cost(model, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
+        llm_tokens_total.labels(kind="in", model=model).inc(prompt_tokens)
+        llm_tokens_total.labels(kind="out", model=model).inc(completion_tokens)
+        cost = estimate_cost(model, prompt_tokens, completion_tokens)
         if cost:
             llm_cost_usd_total.labels(model=model).inc(cost)
     except Exception:
