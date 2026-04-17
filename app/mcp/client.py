@@ -64,13 +64,14 @@ class MCPClient:
                 result = server.call_tool(tool_name, arguments)
                 if hasattr(result, "__await__"):
                     result = await result
-                elapsed_ms = (time.perf_counter() - t0) * 1000
-                span.set_attribute("mcp.duration_ms", elapsed_ms)
-                _record_tool_duration(server_name, tool_name, elapsed_ms / 1000)
                 return result
             except Exception as exc:
                 span.record_exception(exc)
                 raise ToolError(server=server_name, tool=tool_name, cause=exc) from exc
+            finally:
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                span.set_attribute("mcp.duration_ms", elapsed_ms)
+                _record_tool_duration(server_name, tool_name, elapsed_ms / 1000)
 
 
 def _record_tool_duration(server: str, tool: str, seconds: float) -> None:

@@ -62,6 +62,24 @@ class _CompiledGraph:
         async def run_node(name: str) -> None:
             if name in completed:
                 return
+            # Give the event loop a chance to process other pending work
+            # (e.g. a concurrent fault-injection request from the test harness)
+            # before we execute this node. Without this yield, a graph built
+            # from in-memory fakes can complete in a single event-loop turn
+            # and starve sibling tasks.
+            await asyncio.sleep(0)
+            # Test-only fault injection: check `_fault_slots` right before each
+            # node runs. This closes the race where POST /runs returns and the
+            # background graph starts before the test's inject_fault request
+            # arrives — by polling here, a late-arriving fault still lands on
+            # the named node.
+            if self._thread_id:
+                from app.api.runs import _fault_slots
+
+                fault = _fault_slots.get(self._thread_id)
+                if fault and fault[0] == name:
+                    _fault_slots.pop(self._thread_id, None)
+                    raise RuntimeError(fault[1])
             node = self.nodes[name]
             update = await node(state, llm=self._llm, mcp=self._mcp)
             # Honor the GraphState `errors` reducer: accumulate, don't overwrite.

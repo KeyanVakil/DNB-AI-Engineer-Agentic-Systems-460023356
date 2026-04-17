@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import json
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, field_validator
 
@@ -21,6 +22,10 @@ router = APIRouter()
 _run_cache: dict[str, dict[str, Any]] = {}
 # Test-only fault injection: run_id -> (node, error_msg)
 _fault_slots: dict[str, tuple[str, str]] = {}
+# Strong references to in-flight run tasks. Without this, asyncio only holds
+# a weak reference and tasks can be garbage-collected mid-run. Also lets the
+# test harness observe or wait on them if ever needed.
+_inflight_run_tasks: set[asyncio.Task[Any]] = set()
 
 
 class _CreateRunBody(BaseModel):
@@ -91,9 +96,10 @@ async def _run_background(
 
             graph = build_graph(llm=llm, mcp=mcp, thread_id=run_id_str)
 
-            fault = _fault_slots.pop(run_id_str, None)
-            if fault:
-                graph.nodes[fault[0]].inject_fault(RuntimeError(fault[1]))
+            # Fault injection is now picked up inside the graph at each node
+            # boundary (see _CompiledGraph.run_node). Keeping it there fixes
+            # the race where `_run_background` starts before the test's
+            # inject_fault request arrives.
 
             final = await graph.ainvoke({"customer_id": customer_id})
 
@@ -154,7 +160,6 @@ async def _run_background(
 @router.post("/runs")
 async def create_run(
     request: Request,
-    background_tasks: BackgroundTasks,
     llm: Any = Depends(get_llm),
     registry: dict = Depends(get_registry),
 ) -> JSONResponse:
@@ -203,14 +208,17 @@ async def create_run(
     run_id_str = str(run_id)
     _run_cache[run_id_str] = {"status": "queued"}
 
-    background_tasks.add_task(
-        _run_background,
-        run_id=run_id,
-        customer_id=body.customer_id,
-        prompt_version=body.prompt_version,
-        llm=llm,
-        mcp=registry,
+    task = asyncio.create_task(
+        _run_background(
+            run_id=run_id,
+            customer_id=body.customer_id,
+            prompt_version=body.prompt_version,
+            llm=llm,
+            mcp=registry,
+        )
     )
+    _inflight_run_tasks.add(task)
+    task.add_done_callback(_inflight_run_tasks.discard)
 
     return JSONResponse(
         {
@@ -379,7 +387,6 @@ async def inject_fault(run_id: str, request: Request) -> JSONResponse:
 @router.post("/runs/{run_id}/resume")
 async def resume_run(
     run_id: str,
-    background_tasks: BackgroundTasks,
     llm: Any = Depends(get_llm),
     registry: dict = Depends(get_registry),
 ) -> JSONResponse:
@@ -403,12 +410,15 @@ async def resume_run(
         run.error = None
 
     _run_cache[run_id] = {"status": "queued"}
-    background_tasks.add_task(
-        _run_background,
-        run_id=uid,
-        customer_id=customer_id,
-        prompt_version=prompt_version,
-        llm=llm,
-        mcp=registry,
+    task = asyncio.create_task(
+        _run_background(
+            run_id=uid,
+            customer_id=customer_id,
+            prompt_version=prompt_version,
+            llm=llm,
+            mcp=registry,
+        )
     )
+    _inflight_run_tasks.add(task)
+    task.add_done_callback(_inflight_run_tasks.discard)
     return JSONResponse({"run_id": run_id, "status": "queued"}, status_code=202)
