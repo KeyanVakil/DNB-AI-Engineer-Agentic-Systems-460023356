@@ -49,7 +49,7 @@ async def test_customer_account_transaction_cascade(db_session, seed_fixtures):
     assert all(isinstance(t.amount_nok, Decimal) for t in txns)
 
 
-async def test_account_balance_precision_matches_schema(db_session):
+async def test_account_balance_precision_matches_schema(db_session, seed_fixtures):
     """NUMERIC(14,2) — losing a decimal would be a silent correctness bug."""
     from app.memory.models import Account
 
@@ -73,7 +73,7 @@ async def test_account_kind_enum_rejects_invalid_value(db_session):
         await db_session.flush()
 
 
-async def test_transactions_is_recurring_defaults_to_false(db_session):
+async def test_transactions_is_recurring_defaults_to_false(db_session, seed_fixtures):
     from app.memory.models import Transaction
 
     t = Transaction(
@@ -110,7 +110,7 @@ async def test_holdings_foreign_key_enforced(db_session):
 # ---------------------------------------------------------------------------
 
 
-async def test_prices_primary_key_is_ticker_plus_date(db_session):
+async def test_prices_primary_key_is_ticker_plus_date(db_session, seed_fixtures):
     from app.memory.models import Price
 
     row = Price(
@@ -123,7 +123,7 @@ async def test_prices_primary_key_is_ticker_plus_date(db_session):
         await db_session.flush()
 
 
-async def test_news_sentiment_is_numeric(db_session):
+async def test_news_sentiment_is_numeric(db_session, seed_fixtures):
     from app.memory.models import News
 
     rows = (await db_session.execute(select(News).where(News.ticker == "EQNR.OL"))).scalars().all()
@@ -136,7 +136,7 @@ async def test_news_sentiment_is_numeric(db_session):
 # ---------------------------------------------------------------------------
 
 
-async def test_rule_code_is_unique(db_session):
+async def test_rule_code_is_unique(db_session, seed_fixtures):
     from app.memory.models import Rule
 
     db_session.add(

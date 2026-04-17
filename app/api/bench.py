@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,12 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.api.errors import bad_request
+
+# mlflow.set_experiment mutates os.environ["MLFLOW_EXPERIMENT_ID"], which leaks
+# into subprocesses (e.g. the `finsight bench` CLI test) that create a fresh
+# SQLite tracking DB where that id does not exist. Pop it on import so each
+# process resolves the experiment by name instead.
+os.environ.pop("MLFLOW_EXPERIMENT_ID", None)
 
 router = APIRouter()
 
@@ -74,6 +81,9 @@ async def _run_bench_sync(
     from app.eval.code import run_code_evals
     from app.eval.judge import run_judge
 
+    experiment = mlflow.set_experiment("finsight-bench")
+    exp_id = experiment.experiment_id
+
     mlflow_run_ids = []
 
     for variant in variants:
@@ -113,7 +123,7 @@ async def _run_bench_sync(
         mean_judge = sum(judge_scores) / max(len(judge_scores), 1)
         code_pass_rate = sum(1 for p in code_passes if p) / max(len(code_passes), 1)
 
-        with mlflow.start_run(run_name=variant_id) as mlflow_run:
+        with mlflow.start_run(run_name=variant_id, experiment_id=exp_id) as mlflow_run:
             mlflow.log_param("variant_id", variant_id)
             mlflow.log_param("provider", variant.get("provider"))
             mlflow.log_param("model", variant.get("model"))

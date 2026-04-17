@@ -86,13 +86,46 @@ async def db_engine():
         await engine.dispose()
 
 
+_APP_TABLES = (
+    "memory_embeddings",
+    "drift_events",
+    "human_reviews",
+    "eval_results",
+    "runs",
+    "holdings",
+    "transactions",
+    "accounts",
+    "news",
+    "prices",
+    "rules",
+    "customers",
+)
+
+
+async def _truncate_all(db_engine) -> None:
+    from sqlalchemy import text
+
+    async with db_engine.begin() as conn:
+        await conn.execute(text(f"TRUNCATE TABLE {', '.join(_APP_TABLES)} CASCADE"))
+
+
 @pytest.fixture()
 async def db_session(db_engine) -> AsyncIterator[Any]:
-    """Function-scoped SQLAlchemy session that rolls back after each test."""
+    """Function-scoped SQLAlchemy session. Commits are real (several
+    integration tests drive the FastAPI app through HTTP, and its
+    connection pool can't see rolled-back data) so we truncate all app
+    tables before handing out the session.
+    """
     from app.memory import database
 
-    async with database.session_with_rollback(db_engine) as session:
+    await _truncate_all(db_engine)
+    factory = database.async_sessionmaker(db_engine, expire_on_commit=False)
+    async with factory() as session:
         yield session
+        try:
+            await session.commit()
+        except Exception:
+            await session.rollback()
 
 
 @pytest.fixture()
